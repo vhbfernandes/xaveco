@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:4.4
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    networks:
+      - backend
+
+  simpleapi:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVE_PORT=8080
+      - MONGODB_CONNECTION_STRING="mongodb://root:root@mongo:27017/test"
+      - MONGODB_DATABASE=test
+    networks:
+      - backend
+    depends_on:
+      - mongo
+
+networks:
+  backend:
