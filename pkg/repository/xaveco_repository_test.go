@@ -18,17 +18,18 @@ const SeedModel = `{
   }`
 
 var cfg *models.Xaveco
-var ginctx *gin.Context
+var ctx context.Context
+var xvc *XavecoMongoRepository
 
 func TestItShouldSaveAModel(t *testing.T) {
-	err := Create(ginctx, cfg)
+	err := xvc.Create(ctx, cfg)
 	if err != nil {
 		t.Errorf("Error saving model %v", err)
 	}
 }
 
 func TestItShouldReturnAllSavedItems(t *testing.T) {
-	items, err := FindAll(ginctx)
+	items, err := xvc.FindAll(ctx)
 	if len(items) < 1 {
 		t.Errorf("Collection size mismatch, should be at least one")
 	}
@@ -38,7 +39,7 @@ func TestItShouldReturnAllSavedItems(t *testing.T) {
 }
 
 func TestItShouldReturnARandomItem(t *testing.T) {
-	item, err := FindRandom(ginctx, "any")
+	item, err := xvc.FindRandom(ctx, "any")
 	if item == nil {
 		t.Errorf("Item mismatch, should be at least one")
 	}
@@ -48,7 +49,7 @@ func TestItShouldReturnARandomItem(t *testing.T) {
 }
 
 func TestItShouldReturnAllSavedItemsOnSameTag(t *testing.T) {
-	items, err := FindByTag(ginctx,"pedreiro")
+	items, err := xvc.FindByTag(ctx,"pedreiro")
 	if len(items) < 1 {
 		t.Errorf("Collection size mismatch, should be at least one")
 	}
@@ -61,7 +62,7 @@ func TestItShouldReturnAllSavedItemsOnSameTag(t *testing.T) {
 }
 
 func TestItShouldNotFindNonExistingItems(t *testing.T) {
-	items, err := FindByTag(ginctx,"salada")
+	items, err := xvc.FindByTag(ctx,"salada")
 	if len(items) > 0 {
 		t.Errorf("Collection size mismatch, there should be no salada xavecos")
 	}
@@ -74,7 +75,7 @@ func TestItShouldNotFindNonExistingItems(t *testing.T) {
 func setup() {
 	err := json.Unmarshal([]byte(SeedModel), &cfg)
 	ctx = &gin.Context{}
-	Init()
+	xvc = NewXavecoMongoRepository()
 	if err != nil {
 		panic("Error creating model " + err.Error())
 	}

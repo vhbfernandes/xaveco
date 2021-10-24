@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
 	"github.com/kamva/mgm/v3"
 	"github.com/vhbfernandes/xaveco/pkg/database"
 	"github.com/vhbfernandes/xaveco/pkg/models"
@@ -11,18 +10,22 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-var coll *mgm.Collection
-var ctx context.Context
-// Init Initializes repository;
+type XavecoMongoRepository struct {
+	coll *mgm.Collection
+}
+
+// NewXavecoMongoRepository Initializes repository;
 // mongodb connection is required
-func Init() {
+func NewXavecoMongoRepository() *XavecoMongoRepository {
 	database.Connect()
-	ctx = mgm.Ctx()
-	coll = mgm.Coll(&models.Xaveco{})
-	ensureIndexes()
+	xvc := XavecoMongoRepository{
+		coll: mgm.Coll(&models.Xaveco{}),
+	}
+	xvc.ensureIndexes()
+	return &xvc
 }
 // FindRandom returns a random xaveco, tagged one if a tag is provided
-func FindRandom(ctx *gin.Context, tag string) (xvc map[string]interface{}, err error) {
+func (x *XavecoMongoRepository) FindRandom(ctx context.Context, tag string) (xvc map[string]interface{}, err error) {
 	var pipe mongo.Pipeline
 	var result []*models.Xaveco
 	var xaveco = make(map[string]interface{})
@@ -37,7 +40,7 @@ func FindRandom(ctx *gin.Context, tag string) (xvc map[string]interface{}, err e
 		}
 	}
 
-	cursor, err := coll.Aggregate(ctx,pipe)
+	cursor, err := x.coll.Aggregate(ctx,pipe)
 	err = cursor.All(ctx,&result)
 	//todo arrumar essa gambi
 	xaveco["data"] = result[0].Content
@@ -47,24 +50,24 @@ func FindRandom(ctx *gin.Context, tag string) (xvc map[string]interface{}, err e
 }
 
 // FindAll returns all xavecos on database
-func FindAll(ctx *gin.Context) (xavecos []*models.Xaveco, err error) {
-	cursor, err := coll.Find(ctx, bson.M{})
+func (x *XavecoMongoRepository) FindAll(ctx context.Context) (xavecos []*models.Xaveco, err error) {
+	cursor, err := x.coll.Find(ctx, bson.M{})
 	err = cursor.All(ctx, &xavecos)
 	return
 }
 
 // FindByTag returns all xavecos declared with the same tag
-func FindByTag(ctx *gin.Context, tag string) (xavecos []*models.Xaveco, err error) {
-	cursor, err := coll.Find(ctx, bson.M{"tags": tag})
+func (x *XavecoMongoRepository) FindByTag(ctx context.Context, tag string) (xavecos []*models.Xaveco, err error) {
+	cursor, err := x.coll.Find(ctx, bson.M{"tags": tag})
 	err = cursor.All(ctx, &xavecos)
 	return
 }
 
 // Create saves a model xaveco to the database
-func Create(ctx *gin.Context, xaveco *models.Xaveco) error {
-	return coll.CreateWithCtx(ctx, xaveco)
+func (x *XavecoMongoRepository) Create(ctx context.Context, xaveco *models.Xaveco) error {
+	return x.coll.CreateWithCtx(ctx, xaveco)
 }
 
-func ensureIndexes() {
-	coll.Indexes().CreateOne(ctx, mongo.IndexModel{Keys: bson.D{{"tags", 1}}}, &options.CreateIndexesOptions{})
+func (x *XavecoMongoRepository) ensureIndexes() {
+	x.coll.Indexes().CreateOne(context.TODO(), mongo.IndexModel{Keys: bson.D{{"tags", 1}}}, &options.CreateIndexesOptions{})
 }
